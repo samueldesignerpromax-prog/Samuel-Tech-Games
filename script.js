@@ -1,7 +1,7 @@
 // ==================== CONFIGURAÇÃO DA API ====================
-const API_URL = window.location.origin + '/api/reviews';
+const API_URL = 'https://samuel-tech-games-2dj6.onrender.com/api/reviews';
 
-// Lista de Jogos
+// ==================== LISTA DE JOGOS ====================
 const games = [
     { id: 1, name: "Arcade Shooter Espacial", url: "https://arcade-shooter-espacial.vercel.app", icon: "fa-rocket", desc: "Nave espacial, tiros e desafios infinitos!" },
     { id: 2, name: "Escape do Labirinto Vivo", url: "https://escape-do-labirinto-vivo.vercel.app", icon: "fa-dragon", desc: "Labirinto que se transforma em tempo real!" },
@@ -16,10 +16,12 @@ const games = [
 async function getReviews() {
     try {
         const response = await fetch(API_URL);
-        if (!response.ok) throw new Error('Erro');
-        return await response.json();
+        if (!response.ok) throw new Error('Erro na API');
+        const data = await response.json();
+        console.log('📝 Comentários carregados:', data);
+        return data;
     } catch (error) {
-        console.error('Erro ao buscar:', error);
+        console.error('❌ Erro ao buscar comentários:', error);
         return [];
     }
 }
@@ -31,14 +33,18 @@ async function saveReview(review) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(review)
         });
-        return await response.json();
+        if (!response.ok) throw new Error('Erro ao salvar');
+        const data = await response.json();
+        console.log('✅ Comentário salvo:', data);
+        return data;
     } catch (error) {
-        console.error('Erro ao salvar:', error);
+        console.error('❌ Erro ao salvar comentário:', error);
+        alert('Erro ao salvar. Tente novamente.');
         return null;
     }
 }
 
-// ==================== RENDERIZAÇÃO ====================
+// ==================== RENDERIZAÇÃO DOS JOGOS ====================
 function renderGames() {
     const grid = document.getElementById('gamesGrid');
     if (!grid) return;
@@ -72,14 +78,21 @@ function renderGameSelect() {
         games.map(game => `<option value="${game.id}">${game.name}</option>`).join('');
 }
 
+// ==================== RENDERIZAÇÃO DOS COMENTÁRIOS ====================
 async function renderReviews() {
     const container = document.getElementById('reviewsList');
-    if (!container) return;
-    const reviews = await getReviews();
-    if (reviews.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#aaa;">Seja o primeiro a avaliar!</p>';
+    if (!container) {
+        console.log('⚠️ Elemento reviewsList não encontrado');
         return;
     }
+    
+    const reviews = await getReviews();
+    
+    if (!reviews || reviews.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#aaa;">⭐ Seja o primeiro a avaliar um jogo!</p>';
+        return;
+    }
+    
     container.innerHTML = [...reviews].reverse().map(review => `
         <div class="review-item">
             <div class="review-header">
@@ -93,17 +106,19 @@ async function renderReviews() {
     `).join('');
 }
 
+// ==================== ESTATÍSTICAS ====================
 async function loadStats() {
     const reviews = await getReviews();
     const total = reviews.length;
     const avg = total > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / total).toFixed(1) : 0;
+    
     const avgEl = document.getElementById('avgRating');
     const totalEl = document.getElementById('totalReviews');
     if (avgEl) avgEl.textContent = avg;
     if (totalEl) totalEl.textContent = total;
 }
 
-// ==================== SUBMIT REVIEW ====================
+// ==================== FORMULÁRIO DE AVALIAÇÃO ====================
 let selectedRating = 0;
 
 function setupStarRating() {
@@ -113,8 +128,13 @@ function setupStarRating() {
             selectedRating = parseInt(star.dataset.value);
             updateStars(selectedRating);
         });
-        star.addEventListener('mouseenter', () => highlightStars(parseInt(star.dataset.value)));
-        star.addEventListener('mouseleave', () => highlightStars(selectedRating));
+        star.addEventListener('mouseenter', () => {
+            const val = parseInt(star.dataset.value);
+            highlightStars(val);
+        });
+        star.addEventListener('mouseleave', () => {
+            highlightStars(selectedRating);
+        });
     });
 }
 
@@ -148,9 +168,18 @@ async function submitReview() {
     const author = document.getElementById('reviewAuthor')?.value.trim();
     const comment = document.getElementById('reviewComment')?.value.trim();
     
-    if (!gameId) { alert('Selecione um jogo!'); return; }
-    if (!selectedRating) { alert('Selecione uma nota!'); return; }
-    if (!comment) { alert('Escreva um comentário!'); return; }
+    if (!gameId) {
+        alert('Por favor, selecione um jogo!');
+        return;
+    }
+    if (!selectedRating) {
+        alert('Por favor, selecione uma quantidade de estrelas!');
+        return;
+    }
+    if (!comment) {
+        alert('Por favor, escreva um comentário!');
+        return;
+    }
     
     const game = games.find(g => g.id == gameId);
     const newReview = {
@@ -162,13 +191,27 @@ async function submitReview() {
         date: new Date().toISOString()
     };
     
-    await saveReview(newReview);
-    alert('✅ Avaliação enviada!');
-    document.getElementById('reviewAuthor').value = '';
-    document.getElementById('reviewComment').value = '';
-    clearStars();
-    await renderReviews();
-    await loadStats();
+    const saved = await saveReview(newReview);
+    if (saved) {
+        alert('✅ Avaliação enviada com sucesso! Obrigado!');
+        document.getElementById('reviewAuthor').value = '';
+        document.getElementById('reviewComment').value = '';
+        document.getElementById('reviewGameSelect').value = '';
+        clearStars();
+        await renderReviews();
+        await loadStats();
+    }
+}
+
+// ==================== CONTATO ====================
+function setupContactForm() {
+    const form = document.getElementById('contactForm');
+    if (!form) return;
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('📧 Mensagem enviada! Em breve entrarei em contato.');
+        form.reset();
+    });
 }
 
 // ==================== EFEITO MATRIX ====================
@@ -189,10 +232,12 @@ function createMatrixEffect() {
     const chars = "01";
     const fontSize = 14;
     let drops = [];
+    
     function init() {
         const cols = Math.floor(canvas.width / fontSize);
         drops = Array(cols).fill(0).map(() => Math.random() * -100);
     }
+    
     function draw() {
         ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -204,6 +249,7 @@ function createMatrixEffect() {
             drops[i]++;
         }
     }
+    
     init();
     window.addEventListener('resize', init);
     function animate() { draw(); requestAnimationFrame(animate); }
@@ -232,10 +278,14 @@ function addWhatsAppButton() {
 
 // ==================== INICIALIZAÇÃO ====================
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Site carregando...');
+    console.log('📡 API URL:', API_URL);
+    
     renderGames();
     renderHighlights();
     renderGameSelect();
     setupStarRating();
+    setupContactForm();
     await renderReviews();
     await loadStats();
     createMatrixEffect();
@@ -250,5 +300,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = 'games.html';
     });
     
-    console.log('✅ Site carregado! API:', API_URL);
+    console.log('✅ Site pronto!');
 });
