@@ -1,45 +1,46 @@
-const express = require('express');
-const path = require('path');
-const jsonServer = require('json-server');
+// ==================== CONFIGURAÇÃO DA API ====================
+// URL absoluta da API no Render
+const API_URL = 'https://samuel-tech-games-2dj6.onrender.com/api/reviews';
 
-const app = express();
-const router = jsonServer.router('db.json');
+// Buscar comentários da API
+async function getReviews() {
+    try {
+        console.log('🔍 Buscando comentários em:', API_URL);
+        const response = await fetch(API_URL);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Comentários carregados:', data);
+        return data;
+    } catch (error) {
+        console.error('❌ Erro ao buscar comentários:', error);
+        return [];
+    }
+}
 
-// Middlewares
-app.use(express.json());
-app.use(express.static(__dirname));
-
-// CORS
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    next();
-});
-
-// ROTA DA API (backend) - CORRIGIDA
-app.use('/api/reviews', router);
-
-// ROTAS DO SITE (frontend)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-app.get('/games.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'games.html'));
-});
-app.get('/reviews.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'reviews.html'));
-});
-app.get('/about.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'about.html'));
-});
-app.get('/contact.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'contact.html'));
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Servidor rodando na porta ${PORT}`);
-    console.log(`🌐 Site: https://samuel-tech-games-2dj6.onrender.com`);
-    console.log(`📡 API: https://samuel-tech-games-2dj6.onrender.com/api/reviews`);
-});
+// Salvar comentário na API
+async function saveReview(review) {
+    try {
+        console.log('📤 Enviando comentário:', review);
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(review)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Comentário salvo:', data);
+        return data;
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        alert('Erro ao salvar comentário. Tente novamente.');
+        return null;
+    }
+}
