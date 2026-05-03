@@ -1,7 +1,7 @@
 // ==================== CONFIGURAÇÃO DA API ====================
 const API_URL = 'https://samuel-tech-games-2dj6.onrender.com/api/reviews';
 
-// ==================== LISTA DE JOGOS ====================
+// Lista de Jogos
 const games = [
     { id: 1, name: "Arcade Shooter Espacial", url: "https://arcade-shooter-espacial.vercel.app", icon: "fa-rocket", desc: "Nave espacial, tiros e desafios infinitos!" },
     { id: 2, name: "Escape do Labirinto Vivo", url: "https://escape-do-labirinto-vivo.vercel.app", icon: "fa-dragon", desc: "Labirinto que se transforma em tempo real!" },
@@ -15,30 +15,42 @@ const games = [
 // ==================== FUNÇÕES DA API ====================
 async function getReviews() {
     try {
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error('Erro na API');
-        const data = await response.json();
-        console.log('📝 Comentários carregados:', data);
-        return data;
-    } catch (error) {
-        console.error('❌ Erro ao buscar comentários:', error);
+        const resposta = await fetch(API_URL);
+        if (!resposta.ok) throw new Error('Erro na API');
+        const dados = await resposta.json();
+        console.log('✅ Comentários carregados:', dados.length);
+        return dados;
+    } catch (erro) {
+        console.error('❌ Erro:', erro);
         return [];
     }
 }
 
 async function saveReview(review) {
     try {
-        const response = await fetch(API_URL, {
+        // Garantir que tem id único
+        const novoReview = {
+            ...review,
+            id: Date.now(),
+            date: new Date().toISOString()
+        };
+        
+        console.log('📤 Enviando:', novoReview);
+        
+        const resposta = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(review)
+            body: JSON.stringify(novoReview)
         });
-        if (!response.ok) throw new Error('Erro ao salvar');
-        const data = await response.json();
-        console.log('✅ Comentário salvo:', data);
-        return data;
-    } catch (error) {
-        console.error('❌ Erro ao salvar comentário:', error);
+        
+        if (!resposta.ok) throw new Error('Erro ao salvar');
+        
+        const dados = await resposta.json();
+        console.log('✅ Salvo!', dados);
+        return dados;
+        
+    } catch (erro) {
+        console.error('❌ Erro detalhado:', erro);
         alert('Erro ao salvar. Tente novamente.');
         return null;
     }
@@ -78,13 +90,10 @@ function renderGameSelect() {
         games.map(game => `<option value="${game.id}">${game.name}</option>`).join('');
 }
 
-// ==================== RENDERIZAÇÃO DOS COMENTÁRIOS ====================
+// ==================== EXIBIR COMENTÁRIOS ====================
 async function renderReviews() {
     const container = document.getElementById('reviewsList');
-    if (!container) {
-        console.log('⚠️ Elemento reviewsList não encontrado');
-        return;
-    }
+    if (!container) return;
     
     const reviews = await getReviews();
     
@@ -118,7 +127,7 @@ async function loadStats() {
     if (totalEl) totalEl.textContent = total;
 }
 
-// ==================== FORMULÁRIO DE AVALIAÇÃO ====================
+// ==================== FORMULÁRIO ====================
 let selectedRating = 0;
 
 function setupStarRating() {
@@ -126,41 +135,17 @@ function setupStarRating() {
     stars.forEach(star => {
         star.addEventListener('click', () => {
             selectedRating = parseInt(star.dataset.value);
-            updateStars(selectedRating);
-        });
-        star.addEventListener('mouseenter', () => {
-            const val = parseInt(star.dataset.value);
-            highlightStars(val);
-        });
-        star.addEventListener('mouseleave', () => {
-            highlightStars(selectedRating);
+            stars.forEach((s, i) => {
+                if (i < selectedRating) {
+                    s.classList.add('active');
+                    s.style.color = '#ffcc00';
+                } else {
+                    s.classList.remove('active');
+                    s.style.color = '#555';
+                }
+            });
         });
     });
-}
-
-function updateStars(rating) {
-    const stars = document.querySelectorAll('.star');
-    stars.forEach((star, i) => {
-        if (i < rating) {
-            star.classList.add('active');
-            star.style.color = '#ffcc00';
-        } else {
-            star.classList.remove('active');
-            star.style.color = '#555';
-        }
-    });
-}
-
-function highlightStars(rating) {
-    const stars = document.querySelectorAll('.star');
-    stars.forEach((star, i) => {
-        star.style.color = i < rating ? '#ffcc00' : '#555';
-    });
-}
-
-function clearStars() {
-    selectedRating = 0;
-    updateStars(0);
 }
 
 async function submitReview() {
@@ -168,36 +153,32 @@ async function submitReview() {
     const author = document.getElementById('reviewAuthor')?.value.trim();
     const comment = document.getElementById('reviewComment')?.value.trim();
     
-    if (!gameId) {
-        alert('Por favor, selecione um jogo!');
-        return;
-    }
-    if (!selectedRating) {
-        alert('Por favor, selecione uma quantidade de estrelas!');
-        return;
-    }
-    if (!comment) {
-        alert('Por favor, escreva um comentário!');
-        return;
-    }
+    if (!gameId) { alert('Selecione um jogo!'); return; }
+    if (!selectedRating) { alert('Selecione uma nota!'); return; }
+    if (!comment) { alert('Escreva um comentário!'); return; }
     
     const game = games.find(g => g.id == gameId);
-    const newReview = {
+    
+    const novoReview = {
         gameId: parseInt(gameId),
         gameName: game.name,
         rating: selectedRating,
         author: author || 'Anônimo',
-        comment: comment,
-        date: new Date().toISOString()
+        comment: comment
     };
     
-    const saved = await saveReview(newReview);
-    if (saved) {
-        alert('✅ Avaliação enviada com sucesso! Obrigado!');
+    const salvo = await saveReview(novoReview);
+    
+    if (salvo) {
+        alert('✅ Avaliação enviada com sucesso!');
         document.getElementById('reviewAuthor').value = '';
         document.getElementById('reviewComment').value = '';
         document.getElementById('reviewGameSelect').value = '';
-        clearStars();
+        selectedRating = 0;
+        document.querySelectorAll('.star').forEach(s => {
+            s.classList.remove('active');
+            s.style.color = '#555';
+        });
         await renderReviews();
         await loadStats();
     }
@@ -256,7 +237,7 @@ function createMatrixEffect() {
     animate();
 }
 
-// ==================== BOTÃO WHATSAPP ====================
+// ==================== WHATSAPP ====================
 function addWhatsAppButton() {
     if (document.getElementById('whatsapp-button')) return;
     const btn = document.createElement('a');
@@ -271,16 +252,12 @@ function addWhatsAppButton() {
         font-size: 32px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         z-index: 1000; transition: all 0.3s; text-decoration: none;
     `;
-    btn.onmouseenter = () => btn.style.transform = 'scale(1.1)';
-    btn.onmouseleave = () => btn.style.transform = 'scale(1)';
     document.body.appendChild(btn);
 }
 
 // ==================== INICIALIZAÇÃO ====================
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Site carregando...');
-    console.log('📡 API URL:', API_URL);
-    
+    console.log('🚀 Site iniciado!');
     renderGames();
     renderHighlights();
     renderGameSelect();
@@ -299,6 +276,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
         window.location.href = 'games.html';
     });
-    
-    console.log('✅ Site pronto!');
 });
