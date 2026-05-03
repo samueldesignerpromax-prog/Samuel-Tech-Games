@@ -1,14 +1,35 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const mongoose = require('mongoose');
 
 const app = express();
 
-// Middlewares
+// ==================== CONEXÃO COM MONGODB ====================
+// SUBSTITUA <db_password> PELA SUA SENHA REAL
+const MONGODB_URI = 'mongodb+srv://Samuel:VLOXWvBEymBEe0wG@cluster0.af6fbu4.mongodb.net/samuel_tech_games?retryWrites=true&w=majority';
+
+// Schema do comentário (estrutura dos dados)
+const reviewSchema = new mongoose.Schema({
+    gameId: Number,
+    gameName: String,
+    rating: Number,
+    author: { type: String, default: 'Anônimo' },
+    comment: String,
+    date: { type: Date, default: Date.now }
+});
+
+const Review = mongoose.model('Review', reviewSchema);
+
+// Conectar ao MongoDB
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('✅ Conectado ao MongoDB Atlas!'))
+    .catch(err => console.error('❌ Erro ao conectar:', err));
+
+// ==================== MIDDLEWARES ====================
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// CORS
+// CORS - Libera para qualquer origem
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -16,72 +37,50 @@ app.use((req, res, next) => {
     next();
 });
 
-// ==================== API DE COMENTÁRIOS (MANUAL) ====================
-const DB_FILE = path.join(__dirname, 'db.json');
-
-// Ler comentários
-function getReviews() {
-    try {
-        const data = fs.readFileSync(DB_FILE, 'utf8');
-        const json = JSON.parse(data);
-        return json.reviews || [];
-    } catch (error) {
-        return [];
-    }
-}
-
-// Salvar comentários
-function saveReviews(reviews) {
-    try {
-        const data = { reviews: reviews };
-        fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-        return true;
-    } catch (error) {
-        return false;
-    }
-}
+// ==================== API DE COMENTÁRIOS ====================
 
 // GET - Buscar todos os comentários
-app.get('/api/reviews', (req, res) => {
-    const reviews = getReviews();
-    res.json(reviews);
+app.get('/api/reviews', async (req, res) => {
+    try {
+        const reviews = await Review.find().sort({ date: -1 });
+        res.json(reviews);
+    } catch (error) {
+        console.error('Erro ao buscar:', error);
+        res.status(500).json({ erro: 'Erro ao buscar comentários' });
+    }
 });
 
 // POST - Adicionar novo comentário
-app.post('/api/reviews', (req, res) => {
+app.post('/api/reviews', async (req, res) => {
     try {
-        const newReview = req.body;
+        console.log('📝 Recebendo comentário:', req.body);
         
-        // Validar dados
-        if (!newReview.gameName || !newReview.rating || !newReview.comment) {
-            return res.status(400).json({ erro: 'Dados incompletos' });
-        }
+        const newReview = new Review({
+            gameId: req.body.gameId,
+            gameName: req.body.gameName,
+            rating: req.body.rating,
+            author: req.body.author || 'Anônimo',
+            comment: req.body.comment
+        });
         
-        // Adicionar ID único e data
-        newReview.id = Date.now();
-        newReview.date = new Date().toISOString();
-        
-        // Salvar
-        const reviews = getReviews();
-        reviews.push(newReview);
-        saveReviews(reviews);
-        
-        console.log('✅ Comentário salvo:', newReview);
-        res.status(201).json(newReview);
+        const saved = await newReview.save();
+        console.log('✅ Comentário salvo no MongoDB:', saved);
+        res.status(201).json(saved);
         
     } catch (error) {
         console.error('❌ Erro ao salvar:', error);
-        res.status(500).json({ erro: 'Erro interno' });
+        res.status(500).json({ erro: 'Erro ao salvar comentário' });
     }
 });
 
 // DELETE - Deletar comentário (opcional)
-app.delete('/api/reviews/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    let reviews = getReviews();
-    reviews = reviews.filter(r => r.id !== id);
-    saveReviews(reviews);
-    res.json({ mensagem: 'Comentário deletado' });
+app.delete('/api/reviews/:id', async (req, res) => {
+    try {
+        await Review.findByIdAndDelete(req.params.id);
+        res.json({ mensagem: 'Comentário deletado' });
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao deletar' });
+    }
 });
 
 // ==================== ROTAS DO SITE ====================
