@@ -5,34 +5,39 @@ const mongoose = require('mongoose');
 const app = express();
 
 // ==================== CONEXÃO COM MONGODB ====================
-// SUBSTITUA <db_password> PELA SUA SENHA REAL
 const MONGODB_URI = 'mongodb+srv://Samuel:VLOXWvBEymBEe0wG@cluster0.af6fbu4.mongodb.net/samuel_tech_games?retryWrites=true&w=majority';
 
-// Schema do comentário (estrutura dos dados)
+// Schema do comentário
 const reviewSchema = new mongoose.Schema({
-    gameId: Number,
-    gameName: String,
-    rating: Number,
+    gameId: { type: Number, required: true },
+    gameName: { type: String, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
     author: { type: String, default: 'Anônimo' },
-    comment: String,
+    comment: { type: String, required: true },
     date: { type: Date, default: Date.now }
 });
 
 const Review = mongoose.model('Review', reviewSchema);
 
-// Conectar ao MongoDB
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✅ Conectado ao MongoDB Atlas!'))
-    .catch(err => console.error('❌ Erro ao conectar:', err));
+// Conectar ao MongoDB com opções extras
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+})
+.then(() => console.log('✅ Conectado ao MongoDB Atlas!'))
+.catch(err => {
+    console.error('❌ Erro ao conectar no MongoDB:', err.message);
+    console.log('⚠️ Continuando sem banco de dados...');
+});
 
 // ==================== MIDDLEWARES ====================
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// CORS - Libera para qualquer origem
+// CORS
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     next();
 });
@@ -43,10 +48,11 @@ app.use((req, res, next) => {
 app.get('/api/reviews', async (req, res) => {
     try {
         const reviews = await Review.find().sort({ date: -1 });
+        console.log(`📖 Buscados ${reviews.length} comentários`);
         res.json(reviews);
     } catch (error) {
         console.error('Erro ao buscar:', error);
-        res.status(500).json({ erro: 'Erro ao buscar comentários' });
+        res.json([]);
     }
 });
 
@@ -54,6 +60,11 @@ app.get('/api/reviews', async (req, res) => {
 app.post('/api/reviews', async (req, res) => {
     try {
         console.log('📝 Recebendo comentário:', req.body);
+        
+        // Validar dados
+        if (!req.body.gameName || !req.body.rating || !req.body.comment) {
+            return res.status(400).json({ erro: 'Dados incompletos' });
+        }
         
         const newReview = new Review({
             gameId: req.body.gameId,
@@ -64,41 +75,21 @@ app.post('/api/reviews', async (req, res) => {
         });
         
         const saved = await newReview.save();
-        console.log('✅ Comentário salvo no MongoDB:', saved);
+        console.log('✅ Comentário salvo no MongoDB!', saved);
         res.status(201).json(saved);
         
     } catch (error) {
-        console.error('❌ Erro ao salvar:', error);
-        res.status(500).json({ erro: 'Erro ao salvar comentário' });
-    }
-});
-
-// DELETE - Deletar comentário (opcional)
-app.delete('/api/reviews/:id', async (req, res) => {
-    try {
-        await Review.findByIdAndDelete(req.params.id);
-        res.json({ mensagem: 'Comentário deletado' });
-    } catch (error) {
-        res.status(500).json({ erro: 'Erro ao deletar' });
+        console.error('❌ Erro detalhado:', error);
+        res.status(500).json({ erro: error.message });
     }
 });
 
 // ==================== ROTAS DO SITE ====================
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-app.get('/games.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'games.html'));
-});
-app.get('/reviews.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'reviews.html'));
-});
-app.get('/about.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'about.html'));
-});
-app.get('/contact.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'contact.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/games.html', (req, res) => res.sendFile(path.join(__dirname, 'games.html')));
+app.get('/reviews.html', (req, res) => res.sendFile(path.join(__dirname, 'reviews.html')));
+app.get('/about.html', (req, res) => res.sendFile(path.join(__dirname, 'about.html')));
+app.get('/contact.html', (req, res) => res.sendFile(path.join(__dirname, 'contact.html')));
 
 // ==================== INICIAR SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
