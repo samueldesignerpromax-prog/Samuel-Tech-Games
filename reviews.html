@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Samuel Tech Games - Avaliações</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="header-content"><h1>⚡ Samuel Tech Games ⚡</h1><p>Criando jogos indie que desafiam e divertem!</p></div>
+        <nav>
+            <a href="index.html" class="nav-btn">🏠 Início</a>
+            <a href="games.html" class="nav-btn">🎮 Jogos</a>
+            <a href="reviews.html" class="nav-btn active">⭐ Avaliações</a>
+            <a href="about.html" class="nav-btn">👤 Sobre Mim</a>
+            <a href="contact.html" class="nav-btn">📞 Contato</a>
+        </nav>
+    </header>
+    <main>
+        <h2>⭐ Avaliações dos Jogadores</h2>
+        <div class="review-form">
+            <h3>Deixe sua avaliação</h3>
+            <select id="reviewGameSelect"><option value="">Selecione um jogo</option></select>
+            <div class="star-rating">
+                <span class="star" data-value="1">★</span><span class="star" data-value="2">★</span>
+                <span class="star" data-value="3">★</span><span class="star" data-value="4">★</span>
+                <span class="star" data-value="5">★</span>
+            </div>
+            <input type="text" id="reviewAuthor" placeholder="Seu nome (opcional)">
+            <textarea id="reviewComment" rows="3" placeholder="Escreva seu comentário..."></textarea>
+            <button id="submitReview" class="btn">📨 Enviar Avaliação</button>
+        </div>
+        <div class="reviews-container"><h3>📝 Comentários dos Jogadores</h3><div id="reviewsList" class="reviews-list"></div></div>
+    </main>
+    <footer><p>&copy; 2025 Samuel Tech Games - Todos os direitos reservados</p></footer>
+    <script src="script.js"></script>
+</body>
+</html>
