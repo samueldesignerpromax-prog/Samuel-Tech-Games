@@ -9,6 +9,8 @@ const middlewares = jsonServer.defaults();
 // Middlewares
 app.use(middlewares);
 app.use(express.json());
+
+// Servir arquivos estáticos (CSS, JS, imagens)
 app.use(express.static(__dirname));
 
 // CORS para liberar acesso
@@ -19,15 +21,15 @@ app.use((req, res, next) => {
     next();
 });
 
-// API - Rotas de comentários
+// API - Rotas de comentários (prefixo /api)
 app.use('/api/reviews', router);
 
-// Rota principal para o site
+// Rota principal - SITE DE JOGOS
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Rotas das páginas
+// Rotas das outras páginas
 app.get('/games.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'games.html'));
 });
@@ -44,6 +46,6 @@ app.get('/contact.html', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Site e API rodando na porta ${PORT}`);
-    console.log(`📝 Site: https://samuel-tech-games.onrender.com`);
-    console.log(`📝 API: https://samuel-tech-games.onrender.com/api/reviews`);
+    console.log(`📝 Site: https://samuel-tech-games-2dj6.onrender.com`);
+    console.log(`📝 API: https://samuel-tech-games-2dj6.onrender.com/api/reviews`);
 });
