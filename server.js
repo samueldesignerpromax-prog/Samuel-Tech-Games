@@ -17,7 +17,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// ROTA DA API (backend)
+// ROTA DA API (backend) - CORRIGIDA
 app.use('/api/reviews', router);
 
 // ROTAS DO SITE (frontend)
