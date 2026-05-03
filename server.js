@@ -1,33 +1,45 @@
-// ==================== CONFIGURAÇÃO DA API ====================
-const API_URL = window.location.origin + '/api/reviews';
+const express = require('express');
+const path = require('path');
+const jsonServer = require('json-server');
 
-// Buscar comentários
-async function getReviews() {
-    try {
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error('Erro');
-        const data = await response.json();
-        console.log('✅ Comentários carregados:', data);
-        return data;
-    } catch (error) {
-        console.error('❌ Erro ao buscar:', error);
-        return [];
-    }
-}
+const app = express();
+const router = jsonServer.router('db.json');
 
-// Salvar comentário
-async function saveReview(review) {
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(review)
-        });
-        const data = await response.json();
-        console.log('✅ Comentário salvo:', data);
-        return data;
-    } catch (error) {
-        console.error('❌ Erro ao salvar:', error);
-        return null;
-    }
-}
+// Middlewares
+app.use(express.json());
+app.use(express.static(__dirname));
+
+// CORS
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
+
+// ROTA DA API (backend)
+app.use('/api/reviews', router);
+
+// ROTAS DO SITE (frontend)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+app.get('/games.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'games.html'));
+});
+app.get('/reviews.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'reviews.html'));
+});
+app.get('/about.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'about.html'));
+});
+app.get('/contact.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'contact.html'));
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Servidor rodando na porta ${PORT}`);
+    console.log(`🌐 Site: https://samuel-tech-games-2dj6.onrender.com`);
+    console.log(`📡 API: https://samuel-tech-games-2dj6.onrender.com/api/reviews`);
+});
